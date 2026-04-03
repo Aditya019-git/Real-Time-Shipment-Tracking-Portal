@@ -45,25 +45,33 @@ export function ShipmentListPage() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map((shipment) => (
-              <tr key={shipment.id}>
-                <td>{shipment.id}</td>
-                <td>
-                  {shipment.origin} to {shipment.destination}
-                </td>
-                <td>{shipment.weightKg} kg</td>
-                <td>
-                  <span className={`status-pill status-${shipment.status.toLowerCase()}`}>
-                    {shipment.status}
-                  </span>
-                </td>
-                <td>
-                  <Link className="link-btn" to={`/shipments/${shipment.id}`}>
-                    Open
-                  </Link>
+            {filtered.length > 0 ? (
+              filtered.map((shipment) => (
+                <tr key={shipment.id}>
+                  <td>{shipment.id}</td>
+                  <td>
+                    {shipment.origin} to {shipment.destination}
+                  </td>
+                  <td>{shipment.weightKg} kg</td>
+                  <td>
+                    <span className={`status-pill status-${shipment.status.toLowerCase()}`}>
+                      {shipment.status}
+                    </span>
+                  </td>
+                  <td>
+                    <Link className="link-btn" to={`/shipments/${shipment.id}`}>
+                      Open
+                    </Link>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={5} className="table-empty">
+                  No shipment matches this search. Try shipment ID, origin, or destination.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

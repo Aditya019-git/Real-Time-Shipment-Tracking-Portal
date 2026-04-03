@@ -55,6 +55,24 @@ p {
   color: var(--text-muted);
 }
 
+.alert {
+  font-size: 0.88rem;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.alert-error {
+  color: var(--danger);
+  border: 1px solid #f6cad0;
+  background: #fff0f2;
+}
+
+.alert-success {
+  color: var(--success);
+  border: 1px solid #b7eed5;
+  background: #e7fbf1;
+}
+
 .text-input {
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -63,9 +81,19 @@ p {
   width: 100%;
 }
 
+.text-input-error {
+  border-color: #d54d5a;
+}
+
 .text-input:focus {
   border-color: var(--brand);
   outline: 2px solid rgba(14, 95, 216, 0.16);
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.82rem;
+  margin-top: -6px;
 }
 
 .app-shell {
@@ -210,6 +238,12 @@ p {
   font-size: 0.92rem;
 }
 
+.table-empty {
+  color: var(--text-muted);
+  text-align: center !important;
+  padding: 18px 8px !important;
+}
+
 .status-pill {
   display: inline-block;
   font-size: 0.76rem;
@@ -241,6 +275,11 @@ p {
   padding: 10px 14px;
   font-weight: 600;
   cursor: pointer;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .btn-primary {
