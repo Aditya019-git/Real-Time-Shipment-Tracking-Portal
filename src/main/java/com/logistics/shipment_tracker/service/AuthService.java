@@ -4,6 +4,7 @@ import com.logistics.shipment_tracker.dto.request.LoginRequest;
 import com.logistics.shipment_tracker.dto.request.RegisterRequest;
 import com.logistics.shipment_tracker.dto.response.AuthResponse;
 import com.logistics.shipment_tracker.entity.User;
+import com.logistics.shipment_tracker.enums.Role;
 import com.logistics.shipment_tracker.exception.BadRequestException;
 import com.logistics.shipment_tracker.repository.UserRepository;
 import com.logistics.shipment_tracker.security.JwtService;
@@ -14,8 +15,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 
 @Service
 public class AuthService {
@@ -48,17 +47,21 @@ public class AuthService {
             throw new BadRequestException("Email already exists");
         }
 
+        // Prevent self-registration as ADMIN
+        if (request.getRole() == Role.ADMIN) {
+            throw new BadRequestException("Cannot self-register as ADMIN");
+        }
+
         User user = new User();
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
-        user.setCreatedAt(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getUsername());
+        UserDetails userDetails = userDetailsService
+                .loadUserByUsername(savedUser.getUsername());
         String token = jwtService.generateToken(userDetails);
 
         return new AuthResponse(
@@ -82,7 +85,8 @@ public class AuthService {
         User user = userRepository.findByUsername(request.getUsername())
                 .orElseThrow(() -> new BadRequestException("Invalid credentials"));
 
-        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        UserDetails userDetails = userDetailsService
+                .loadUserByUsername(user.getUsername());
         String token = jwtService.generateToken(userDetails);
 
         return new AuthResponse(
