@@ -20,7 +20,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   CustomUserDetailsService userDetailsService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
     }
@@ -33,6 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String requestPath = request.getServletPath();
 
+        // Skip filter for auth endpoints
         if (requestPath.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
             return;
@@ -40,26 +42,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         final String authHeader = request.getHeader("Authorization");
 
+        // Skip filter if no Bearer token
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
         final String jwt = authHeader.substring(7);
-        final String username = jwtService.extractUsername(jwt);
 
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        // Fix: wrap in try/catch to handle malformed or expired tokens
+        try {
+            final String username = jwtService.extractUsername(jwt);
 
-            if (jwtService.isTokenValid(jwt, userDetails)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails,
-                        null,
-                        userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            if (username != null && SecurityContextHolder.getContext()
+                    .getAuthentication() == null) {
+                UserDetails userDetails = userDetailsService
+                        .loadUserByUsername(username);
+
+                if (jwtService.isTokenValid(jwt, userDetails)) {
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities()
+                            );
+                    authToken.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request));
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authToken);
+                }
             }
+        } catch (Exception e) {
+            // Invalid/expired/malformed token
+            // Clear context and return 401 instead of 500
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
