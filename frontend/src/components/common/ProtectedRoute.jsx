@@ -1,10 +1,10 @@
 import { Navigate, useLocation } from "react-router-dom";
+import { hasValidAuthSession } from "../../utils/authStorage";
 
 export function ProtectedRoute({ children }) {
   const location = useLocation();
-  const token = localStorage.getItem("auth_token");
 
-  if (!token) {
+  if (!hasValidAuthSession()) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
 

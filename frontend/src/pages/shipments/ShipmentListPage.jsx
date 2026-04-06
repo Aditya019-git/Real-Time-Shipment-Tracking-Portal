@@ -12,6 +12,7 @@ const statusOptions = [
   { value: "AWAITING_PICKUP", label: "Awaiting Pickup" },
   { value: "IN_TRANSIT", label: "In Transit" },
   { value: "DELIVERED", label: "Delivered" },
+  { value: "CANCELLED", label: "Cancelled" },
 ];
 
 export function ShipmentListPage() {
@@ -49,9 +50,9 @@ export function ShipmentListPage() {
       const matchesText =
         text.length === 0
           ? true
-          : shipment.id.toLowerCase().includes(text) ||
-            shipment.origin.toLowerCase().includes(text) ||
-            shipment.destination.toLowerCase().includes(text);
+          : (shipment.id ?? "").toLowerCase().includes(text) ||
+            (shipment.origin ?? "").toLowerCase().includes(text) ||
+            (shipment.destination ?? "").toLowerCase().includes(text);
 
       return matchesStatus && matchesText;
     });
@@ -69,18 +70,23 @@ export function ShipmentListPage() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
-        <select
-          className="text-input select-input"
-          value={statusFilter}
-          onChange={(event) => setStatusFilter(event.target.value)}
-          aria-label="Filter shipments by status"
-        >
-          {statusOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        <div className="list-actions">
+          <select
+            className="text-input select-input"
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value)}
+            aria-label="Filter shipments by status"
+          >
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <button className="btn btn-secondary" type="button" onClick={loadShipments}>
+            Refresh
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -142,7 +148,7 @@ export function ShipmentListPage() {
                   </td>
                   <td>{shipment.weightKg} kg</td>
                   <td>
-                    <span className={`status-pill status-${shipment.status.toLowerCase()}`}>
+                    <span className={`status-pill status-${(shipment.status ?? "").toLowerCase()}`}>
                       {shipment.status}
                     </span>
                   </td>

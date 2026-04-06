@@ -171,6 +171,12 @@ p {
   font-size: 1.45rem;
 }
 
+.navbar-meta {
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .page-content {
   padding: 24px;
   display: grid;
@@ -215,6 +221,12 @@ p {
   justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.list-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
 }
 
 .search {
@@ -290,6 +302,11 @@ p {
   background: #dcf8ec;
 }
 
+.status-cancelled {
+  color: #6a1b1b;
+  background: #f5d7d7;
+}
+
 .status-awaiting_pickup,
 .status-awarded,
 .status-posted {
@@ -337,6 +354,51 @@ p {
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
+}
+
+.live-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.75rem;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: #e2e8f5;
+  color: #445a77;
+}
+
+.live-connected {
+  background: #dcf8ec;
+  color: #0a8d5e;
+}
+
+.live-connecting,
+.live-reconnecting {
+  background: #fff2dd;
+  color: #af6b00;
+}
+
+.live-error {
+  background: #fff0f2;
+  color: #b1222c;
+}
+
+.live-meta,
+.live-note {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.live-note {
+  margin-top: 4px;
 }
 
 .kv-list {
@@ -393,6 +455,14 @@ p {
   .title-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .list-actions {
+    width: 100%;
+  }
+
+  .list-actions .btn {
+    width: 100%;
   }
 
   .select-input {

@@ -4,6 +4,10 @@ import { App } from "./App";
 import "./styles/theme.css";
 import "./styles/globals.css";
 
+if (typeof globalThis.global === "undefined") {
+  globalThis.global = globalThis;
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App />

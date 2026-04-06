@@ -1,21 +1,55 @@
-# Shipment API Contract (Frontend Sync)
+# API Contract (Frontend + Backend Sync)
 
-## Status Enum (freeze)
+## Authentication Endpoints
+- `POST /api/auth/register`
+  - request:
+    - `username` (string)
+    - `email` (string)
+    - `password` (string)
+    - `role` (`SHIPPER` or `CARRIER`)
+- `POST /api/auth/login`
+  - request:
+    - `username` (string)
+    - `password` (string)
+
+## Authentication Response Shape
+```json
+{
+  "token": "jwt-token",
+  "userId": "uuid",
+  "username": "shipper1",
+  "email": "shipper1@example.com",
+  "role": "SHIPPER"
+}
+```
+
+## Shipment Status Enum
 - `POSTED`
 - `AWARDED`
 - `AWAITING_PICKUP`
 - `IN_TRANSIT`
 - `DELIVERED`
+- `CANCELLED`
 
-## Shipment Object Shape
+## Shipment Endpoints Needed by Frontend
+- `GET /api/shipments`
+  - accepted response shapes:
+    - raw array `[...]`
+    - `{ "items": [...] }`
+    - `{ "data": [...] }`
+    - `{ "shipments": [...] }`
+- `GET /api/shipments/{id}`
+  - returns one shipment object
+
+## Shipment Object Shape (Preferred)
 ```json
 {
-  "id": "SHP-1001",
+  "id": "uuid-or-business-id",
   "origin": "Bengaluru",
   "destination": "Hyderabad",
   "weightKg": 1800,
   "status": "IN_TRANSIT",
-  "eta": "Apr 3, 2026 18:30 IST",
+  "eta": "Apr 7, 2026 18:30 IST",
   "lastLocation": {
     "latitude": 14.4426,
     "longitude": 78.8242
@@ -23,22 +57,28 @@
   "statusTimeline": [
     {
       "status": "POSTED",
-      "timestamp": "Apr 1, 2026 09:00 IST"
+      "timestamp": "2026-04-06T08:00:00Z"
     }
   ]
 }
 ```
 
-## Endpoints Needed by Frontend
-- `GET /api/shipments`
-  - supports returning either:
-    - raw array of shipments, or
-    - `{ "items": [ ... ] }`, or
-    - `{ "data": [ ... ] }`
-- `GET /api/shipments/{id}`
-  - returns one shipment object
+## Realtime Tracking Contract
+- WebSocket endpoint: `/ws`
+- Topic format: `/topic/shipments/{shipmentId}`
+- Payload shape accepted by frontend:
+```json
+{
+  "shipmentId": "uuid-or-business-id",
+  "status": "IN_TRANSIT",
+  "latitude": 14.44,
+  "longitude": 78.82,
+  "eta": "Apr 7, 2026 18:30 IST",
+  "timestamp": "2026-04-06T13:10:00Z"
+}
+```
 
 ## Notes
-- `status` must always be one of the enum values above.
 - `id`, `origin`, `destination`, `status` are required.
-- `lastLocation` and `statusTimeline` should always be present for detail view.
+- Frontend expects auth token in `Authorization: Bearer <token>`.
+- Invalid auth should return JSON message for UI display.

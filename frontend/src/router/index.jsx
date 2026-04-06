@@ -11,23 +11,24 @@ export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
 
         <Route
+          path="/"
           element={
             <ProtectedRoute>
               <AppLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/shipments" element={<ShipmentListPage />} />
-          <Route path="/shipments/:id" element={<ShipmentDetailPage />} />
+          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="shipments" element={<ShipmentListPage />} />
+          <Route path="shipments/:id" element={<ShipmentDetailPage />} />
         </Route>
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

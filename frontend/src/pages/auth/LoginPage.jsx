@@ -1,20 +1,29 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { isValidEmail, minLength } from "../../utils/validators";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { loginUser } from "../../services/authService";
+import { hasValidAuthSession, saveAuthSession } from "../../utils/authStorage";
+import { minLength } from "../../utils/validators";
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("shipper@transithub.com");
-  const [password, setPassword] = useState("demo1234");
+  const location = useLocation();
+  const [username, setUsername] = useState("shipper1");
+  const [password, setPassword] = useState("password123");
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
+  useEffect(() => {
+    if (hasValidAuthSession()) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [navigate]);
+
   const validate = () => {
     const nextErrors = {};
 
-    if (!isValidEmail(email)) {
-      nextErrors.email = "Enter a valid email address.";
+    if (!minLength(username, 3)) {
+      nextErrors.username = "Username must be at least 3 characters.";
     }
 
     if (!minLength(password, 6)) {
@@ -36,12 +45,14 @@ export function LoginPage() {
 
     try {
       setIsSubmitting(true);
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      localStorage.setItem("auth_token", "demo-jwt-token");
-      localStorage.setItem("auth_role", "SHIPPER");
-      navigate("/dashboard");
-    } catch {
-      setServerError("Login failed. Please try again.");
+      const auth = await loginUser({ username: username.trim(), password });
+      saveAuthSession(auth);
+
+      const redirectTo = location.state?.from ?? "/dashboard";
+      navigate(redirectTo, { replace: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Login failed. Please try again.";
+      setServerError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -53,22 +64,23 @@ export function LoginPage() {
         <p className="eyebrow">Welcome back</p>
         <h1>Sign in to TransitHub</h1>
         {serverError ? <p className="alert alert-error">{serverError}</p> : null}
-        <label className="field-label" htmlFor="email">
-          Email
+
+        <label className="field-label" htmlFor="username">
+          Username
         </label>
         <input
-          id="email"
-          type="email"
-          className={`text-input ${errors.email ? "text-input-error" : ""}`}
-          value={email}
+          id="username"
+          type="text"
+          className={`text-input ${errors.username ? "text-input-error" : ""}`}
+          value={username}
           onChange={(event) => {
-            setEmail(event.target.value);
-            setErrors((prev) => ({ ...prev, email: "" }));
+            setUsername(event.target.value);
+            setErrors((prev) => ({ ...prev, username: "" }));
           }}
-          aria-invalid={Boolean(errors.email)}
+          aria-invalid={Boolean(errors.username)}
           required
         />
-        {errors.email ? <p className="field-error">{errors.email}</p> : null}
+        {errors.username ? <p className="field-error">{errors.username}</p> : null}
 
         <label className="field-label" htmlFor="password">
           Password
