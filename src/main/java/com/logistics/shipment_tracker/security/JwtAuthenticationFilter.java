@@ -1,5 +1,7 @@
 package com.logistics.shipment_tracker.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.logistics.shipment_tracker.exception.ApiError;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,17 +15,21 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final ObjectMapper objectMapper;
 
     public JwtAuthenticationFilter(JwtService jwtService,
-                                   CustomUserDetailsService userDetailsService) {
+                                   CustomUserDetailsService userDetailsService,
+                                   ObjectMapper objectMapper) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.objectMapper = objectMapper;
     }
 
     @Override
@@ -77,7 +83,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json");
-            response.getWriter().write("{\"message\":\"Invalid or expired token\"}");
+            ApiError error = new ApiError(
+                    HttpServletResponse.SC_UNAUTHORIZED,
+                    "Invalid or expired token",
+                    request.getRequestURI(),
+                    LocalDateTime.now()
+            );
+            response.getWriter().write(objectMapper.writeValueAsString(error));
             return;
         }
 
