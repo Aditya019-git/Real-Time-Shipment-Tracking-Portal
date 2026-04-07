@@ -1,6 +1,7 @@
 package com.logistics.shipment_tracker.controller;
 
 import com.logistics.shipment_tracker.dto.request.ShipmentRequest;
+import com.logistics.shipment_tracker.dto.response.LocationUpdateResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentSummaryResponse;
 import com.logistics.shipment_tracker.exception.UnauthorizedException;
@@ -57,6 +58,12 @@ public class ShipmentController {
     public ResponseEntity<ShipmentResponse> getShipment(@PathVariable UUID id) {
         ShipmentResponse response = shipmentService.getShipmentById(id);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/history")
+    public ResponseEntity<List<LocationUpdateResponse>> getShipmentHistory(@PathVariable UUID id) {
+        List<LocationUpdateResponse> history = shipmentService.getShipmentStatusHistory(id);
+        return ResponseEntity.ok(history);
     }
 
     @PutMapping("/{id}")

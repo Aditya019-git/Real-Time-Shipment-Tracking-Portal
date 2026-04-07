@@ -1,14 +1,17 @@
 package com.logistics.shipment_tracker.service;
 
 import com.logistics.shipment_tracker.dto.request.ShipmentRequest;
+import com.logistics.shipment_tracker.dto.response.LocationUpdateResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentSummaryResponse;
+import com.logistics.shipment_tracker.entity.LocationUpdate;
 import com.logistics.shipment_tracker.entity.Shipment;
 import com.logistics.shipment_tracker.entity.User;
 import com.logistics.shipment_tracker.enums.ShipmentStatus;
 import com.logistics.shipment_tracker.exception.BadRequestException;
 import com.logistics.shipment_tracker.exception.ResourceNotFoundException;
 import com.logistics.shipment_tracker.exception.UnauthorizedException;
+import com.logistics.shipment_tracker.repository.LocationUpdateRepository;
 import com.logistics.shipment_tracker.repository.ShipmentRepository;
 import com.logistics.shipment_tracker.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -22,10 +25,14 @@ public class ShipmentService {
 
     private final ShipmentRepository shipmentRepository;
     private final UserRepository userRepository;
+    private final LocationUpdateRepository locationUpdateRepository;
 
-    public ShipmentService(ShipmentRepository shipmentRepository, UserRepository userRepository) {
+    public ShipmentService(ShipmentRepository shipmentRepository,
+                           UserRepository userRepository,
+                           LocationUpdateRepository locationUpdateRepository) {
         this.shipmentRepository = shipmentRepository;
         this.userRepository = userRepository;
+        this.locationUpdateRepository = locationUpdateRepository;
     }
 
     @Transactional
@@ -70,6 +77,17 @@ public class ShipmentService {
         Shipment shipment = shipmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found"));
         return ShipmentResponse.fromEntity(shipment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocationUpdateResponse> getShipmentStatusHistory(UUID id) {
+        Shipment shipment = shipmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found"));
+
+        List<LocationUpdate> updates = locationUpdateRepository.findByShipmentOrderByTimestampAsc(shipment);
+        return updates.stream()
+                .map(LocationUpdateResponse::fromEntity)
+                .toList();
     }
 
     @Transactional
