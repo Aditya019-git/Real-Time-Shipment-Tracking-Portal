@@ -80,9 +80,29 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<LocationUpdateResponse> getShipmentStatusHistory(UUID id) {
+    public ShipmentResponse getShipmentById(UUID id, String username, boolean isAdmin, boolean isCarrier) {
         Shipment shipment = shipmentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Shipment not found"));
+
+        boolean isOwner = shipment.getShipper() != null && shipment.getShipper().getUsername().equals(username);
+        boolean carrierCanView = isCarrier && shipment.getStatus() == ShipmentStatus.POSTED;
+
+        if (!isOwner && !isAdmin && !carrierCanView) {
+            throw new UnauthorizedException("You are not allowed to view this shipment");
+        }
+
+        return ShipmentResponse.fromEntity(shipment);
+    }
+
+    @Transactional(readOnly = true)
+    public List<LocationUpdateResponse> getShipmentStatusHistory(UUID id, String username, boolean isAdmin) {
+        Shipment shipment = shipmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found"));
+
+        boolean isOwner = shipment.getShipper() != null && shipment.getShipper().getUsername().equals(username);
+        if (!isOwner && !isAdmin) {
+            throw new UnauthorizedException("You are not allowed to view this shipment history");
+        }
 
         List<LocationUpdate> updates = locationUpdateRepository.findByShipmentOrderByTimestampAsc(shipment);
         return updates.stream()

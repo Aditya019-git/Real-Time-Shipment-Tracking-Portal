@@ -56,13 +56,22 @@ public class ShipmentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<ShipmentResponse> getShipment(@PathVariable UUID id) {
-        ShipmentResponse response = shipmentService.getShipmentById(id);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        boolean isCarrier = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CARRIER"));
+
+        ShipmentResponse response = shipmentService.getShipmentById(id, username, isAdmin, isCarrier);
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}/history")
     public ResponseEntity<List<LocationUpdateResponse>> getShipmentHistory(@PathVariable UUID id) {
-        List<LocationUpdateResponse> history = shipmentService.getShipmentStatusHistory(id);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+
+        List<LocationUpdateResponse> history = shipmentService.getShipmentStatusHistory(id, username, isAdmin);
         return ResponseEntity.ok(history);
     }
 
