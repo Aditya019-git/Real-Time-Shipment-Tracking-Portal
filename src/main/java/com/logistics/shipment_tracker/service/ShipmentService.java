@@ -19,6 +19,9 @@ import com.logistics.shipment_tracker.repository.UserRepository;
 import com.logistics.shipment_tracker.util.InputSanitizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.UUID;
@@ -68,22 +71,23 @@ public class ShipmentService {
     }
 
     @Transactional(readOnly = true)
-    public List<ShipmentSummaryResponse> getAllShipmentsForCarrier() {
-        return shipmentRepository.findByStatus(ShipmentStatus.POSTED)
-                .stream()
+    public List<ShipmentSummaryResponse> getAllShipmentsForCarrier(int page, int size, String sort) {
+        Pageable pageable = buildPageable(page, size, sort);
+        return shipmentRepository.findByStatus(ShipmentStatus.POSTED, pageable)
                 .map(ShipmentSummaryResponse::fromEntity)
-                .toList();
+                .getContent();
     }
 
     @Transactional(readOnly = true)
-    public List<ShipmentSummaryResponse> getMyShipments(String username) {
+    public List<ShipmentSummaryResponse> getMyShipments(String username, int page, int size, String sort) {
         User shipper = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        return shipmentRepository.findByShipper(shipper)
-                .stream()
+        Pageable pageable = buildPageable(page, size, sort);
+
+        return shipmentRepository.findByShipper(shipper, pageable)
                 .map(ShipmentSummaryResponse::fromEntity)
-                .toList();
+                .getContent();
     }
 
     @Transactional(readOnly = true)
@@ -187,5 +191,18 @@ public class ShipmentService {
                 shipment.getUpdatedAt() != null ? shipment.getUpdatedAt() : shipment.getCreatedAt()
         );
         shipmentStreamService.publish(shipment.getId(), event);
+    }
+
+    private Pageable buildPageable(int page, int size, String sort) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        Sort sortSpec = Sort.by("createdAt").descending();
+        if (sort != null && !sort.isBlank()) {
+            String[] parts = sort.split(",");
+            String prop = parts[0];
+            Sort.Direction dir = parts.length > 1 ? Sort.Direction.fromOptionalString(parts[1]).orElse(Sort.Direction.DESC) : Sort.Direction.DESC;
+            sortSpec = Sort.by(dir, prop);
+        }
+        return PageRequest.of(safePage, safeSize, sortSpec);
     }
 }
