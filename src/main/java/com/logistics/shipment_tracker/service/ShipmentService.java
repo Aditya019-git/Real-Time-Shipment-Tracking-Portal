@@ -12,9 +12,11 @@ import com.logistics.shipment_tracker.enums.ShipmentStatus;
 import com.logistics.shipment_tracker.exception.BadRequestException;
 import com.logistics.shipment_tracker.exception.ResourceNotFoundException;
 import com.logistics.shipment_tracker.exception.UnauthorizedException;
+import com.logistics.shipment_tracker.service.AuditLogService;
 import com.logistics.shipment_tracker.repository.LocationUpdateRepository;
 import com.logistics.shipment_tracker.repository.ShipmentRepository;
 import com.logistics.shipment_tracker.repository.UserRepository;
+import com.logistics.shipment_tracker.util.InputSanitizer;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +30,21 @@ public class ShipmentService {
     private final UserRepository userRepository;
     private final LocationUpdateRepository locationUpdateRepository;
     private final ShipmentStreamService shipmentStreamService;
+    private final AuditLogService auditLogService;
+    private final InputSanitizer inputSanitizer;
 
     public ShipmentService(ShipmentRepository shipmentRepository,
                            UserRepository userRepository,
                            LocationUpdateRepository locationUpdateRepository,
-                           ShipmentStreamService shipmentStreamService) {
+                           ShipmentStreamService shipmentStreamService,
+                           AuditLogService auditLogService,
+                           InputSanitizer inputSanitizer) {
         this.shipmentRepository = shipmentRepository;
         this.userRepository = userRepository;
         this.locationUpdateRepository = locationUpdateRepository;
         this.shipmentStreamService = shipmentStreamService;
+        this.auditLogService = auditLogService;
+        this.inputSanitizer = inputSanitizer;
     }
 
     @Transactional
@@ -46,15 +54,16 @@ public class ShipmentService {
 
         Shipment shipment = Shipment.builder()
                 .shipper(shipper)
-                .origin(request.getOrigin())
-                .destination(request.getDestination())
+                .origin(inputSanitizer.sanitize(request.getOrigin()))
+                .destination(inputSanitizer.sanitize(request.getDestination()))
                 .weightKg(request.getWeightKg())
-                .description(request.getDescription())
+                .description(inputSanitizer.sanitize(request.getDescription()))
                 .status(ShipmentStatus.POSTED)
                 .build();
 
         Shipment savedShipment = shipmentRepository.save(shipment);
         emitUpdate(savedShipment, "created");
+        auditLogService.log(username, "CREATE_SHIPMENT", "Shipment created: " + savedShipment.getId());
         return ShipmentResponse.fromEntity(savedShipment);
     }
 
@@ -131,10 +140,11 @@ public class ShipmentService {
         shipment.setOrigin(request.getOrigin());
         shipment.setDestination(request.getDestination());
         shipment.setWeightKg(request.getWeightKg());
-        shipment.setDescription(request.getDescription());
+        shipment.setDescription(inputSanitizer.sanitize(request.getDescription()));
 
         Shipment updatedShipment = shipmentRepository.save(shipment);
         emitUpdate(updatedShipment, "updated");
+        auditLogService.log(username, "UPDATE_SHIPMENT", "Shipment updated: " + updatedShipment.getId());
         return ShipmentResponse.fromEntity(updatedShipment);
     }
 
@@ -154,6 +164,7 @@ public class ShipmentService {
         shipment.setStatus(ShipmentStatus.CANCELLED);
         shipmentRepository.save(shipment);
         emitUpdate(shipment, "cancelled");
+        auditLogService.log(username, "CANCEL_SHIPMENT", "Shipment cancelled: " + shipment.getId());
     }
 
     public void validateReadAccess(UUID id, String username, boolean isAdmin, boolean isCarrier) {
