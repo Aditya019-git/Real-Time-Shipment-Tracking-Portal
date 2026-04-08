@@ -8,6 +8,8 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @Repository
 public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
@@ -17,4 +19,8 @@ public interface ShipmentRepository extends JpaRepository<Shipment, UUID> {
     List<Shipment> findByStatus(ShipmentStatus status);
 
     List<Shipment> findByShipperAndStatus(User shipper, ShipmentStatus status);
+
+    Page<Shipment> findByStatus(ShipmentStatus status, Pageable pageable);
+
+    Page<Shipment> findByShipper(User shipper, Pageable pageable);
 }

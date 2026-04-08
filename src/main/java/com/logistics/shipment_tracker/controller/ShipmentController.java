@@ -43,17 +43,20 @@ public class ShipmentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<ShipmentSummaryResponse>> getShipments() {
+    public ResponseEntity<List<ShipmentSummaryResponse>> getShipments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt,desc") String sort) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CARRIER"))) {
-            List<ShipmentSummaryResponse> shipments = shipmentService.getAllShipmentsForCarrier();
+            List<ShipmentSummaryResponse> shipments = shipmentService.getAllShipmentsForCarrier(page, size, sort);
             return ResponseEntity.ok(shipments);
         }
 
         if (authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_SHIPPER"))) {
             String username = authentication.getName();
-            List<ShipmentSummaryResponse> shipments = shipmentService.getMyShipments(username);
+            List<ShipmentSummaryResponse> shipments = shipmentService.getMyShipments(username, page, size, sort);
             return ResponseEntity.ok(shipments);
         }
 
