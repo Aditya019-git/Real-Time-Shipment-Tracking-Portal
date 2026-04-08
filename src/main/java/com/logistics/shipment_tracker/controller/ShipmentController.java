@@ -4,8 +4,10 @@ import com.logistics.shipment_tracker.dto.request.ShipmentRequest;
 import com.logistics.shipment_tracker.dto.response.LocationUpdateResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentSummaryResponse;
+import com.logistics.shipment_tracker.dto.response.ShipmentUpdateEvent;
 import com.logistics.shipment_tracker.exception.UnauthorizedException;
 import com.logistics.shipment_tracker.service.ShipmentService;
+import com.logistics.shipment_tracker.service.ShipmentStreamService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 import java.util.UUID;
@@ -23,9 +26,12 @@ import java.util.UUID;
 public class ShipmentController {
 
     private final ShipmentService shipmentService;
+    private final ShipmentStreamService shipmentStreamService;
 
-    public ShipmentController(ShipmentService shipmentService) {
+    public ShipmentController(ShipmentService shipmentService,
+                              ShipmentStreamService shipmentStreamService) {
         this.shipmentService = shipmentService;
+        this.shipmentStreamService = shipmentStreamService;
     }
 
     @PostMapping
@@ -73,6 +79,19 @@ public class ShipmentController {
 
         List<LocationUpdateResponse> history = shipmentService.getShipmentStatusHistory(id, username, isAdmin);
         return ResponseEntity.ok(history);
+    }
+
+    @GetMapping(value = "/{id}/stream", produces = "text/event-stream")
+    public SseEmitter streamShipment(@PathVariable UUID id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        boolean isAdmin = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        boolean isCarrier = authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_CARRIER"));
+
+        // Reuse read access rules from detail
+        shipmentService.validateReadAccess(id, username, isAdmin, isCarrier);
+
+        return shipmentStreamService.subscribe(id);
     }
 
     @PutMapping("/{id}")

@@ -4,6 +4,7 @@ import com.logistics.shipment_tracker.dto.request.ShipmentRequest;
 import com.logistics.shipment_tracker.dto.response.LocationUpdateResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentResponse;
 import com.logistics.shipment_tracker.dto.response.ShipmentSummaryResponse;
+import com.logistics.shipment_tracker.dto.response.ShipmentUpdateEvent;
 import com.logistics.shipment_tracker.entity.LocationUpdate;
 import com.logistics.shipment_tracker.entity.Shipment;
 import com.logistics.shipment_tracker.entity.User;
@@ -26,13 +27,16 @@ public class ShipmentService {
     private final ShipmentRepository shipmentRepository;
     private final UserRepository userRepository;
     private final LocationUpdateRepository locationUpdateRepository;
+    private final ShipmentStreamService shipmentStreamService;
 
     public ShipmentService(ShipmentRepository shipmentRepository,
                            UserRepository userRepository,
-                           LocationUpdateRepository locationUpdateRepository) {
+                           LocationUpdateRepository locationUpdateRepository,
+                           ShipmentStreamService shipmentStreamService) {
         this.shipmentRepository = shipmentRepository;
         this.userRepository = userRepository;
         this.locationUpdateRepository = locationUpdateRepository;
+        this.shipmentStreamService = shipmentStreamService;
     }
 
     @Transactional
@@ -50,6 +54,7 @@ public class ShipmentService {
                 .build();
 
         Shipment savedShipment = shipmentRepository.save(shipment);
+        emitUpdate(savedShipment, "created");
         return ShipmentResponse.fromEntity(savedShipment);
     }
 
@@ -129,6 +134,7 @@ public class ShipmentService {
         shipment.setDescription(request.getDescription());
 
         Shipment updatedShipment = shipmentRepository.save(shipment);
+        emitUpdate(updatedShipment, "updated");
         return ShipmentResponse.fromEntity(updatedShipment);
     }
 
@@ -147,5 +153,28 @@ public class ShipmentService {
 
         shipment.setStatus(ShipmentStatus.CANCELLED);
         shipmentRepository.save(shipment);
+        emitUpdate(shipment, "cancelled");
+    }
+
+    public void validateReadAccess(UUID id, String username, boolean isAdmin, boolean isCarrier) {
+        Shipment shipment = shipmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Shipment not found"));
+
+        boolean isOwner = shipment.getShipper() != null && shipment.getShipper().getUsername().equals(username);
+        boolean carrierCanView = isCarrier && shipment.getStatus() == ShipmentStatus.POSTED;
+
+        if (!isOwner && !isAdmin && !carrierCanView) {
+            throw new UnauthorizedException("You are not allowed to view this shipment");
+        }
+    }
+
+    private void emitUpdate(Shipment shipment, String message) {
+        ShipmentUpdateEvent event = new ShipmentUpdateEvent(
+                shipment.getId(),
+                shipment.getStatus(),
+                message,
+                shipment.getUpdatedAt() != null ? shipment.getUpdatedAt() : shipment.getCreatedAt()
+        );
+        shipmentStreamService.publish(shipment.getId(), event);
     }
 }
