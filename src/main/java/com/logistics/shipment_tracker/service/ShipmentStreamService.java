@@ -13,6 +13,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +24,12 @@ public class ShipmentStreamService {
     private static final Logger log = LoggerFactory.getLogger(ShipmentStreamService.class);
 
     private final Map<UUID, List<SseEmitter>> emitterRegistry = new ConcurrentHashMap<>();
+    private final Map<UUID, ShipmentUpdateEvent> lastEventRegistry = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService heartbeatScheduler = Executors.newSingleThreadScheduledExecutor();
+
+    public ShipmentStreamService() {
+        heartbeatScheduler.scheduleAtFixedRate(this::sendHeartbeats, 30, 30, TimeUnit.SECONDS);
+    }
 
     public SseEmitter subscribe(UUID shipmentId) {
         SseEmitter emitter = new SseEmitter(0L); // no timeout; client can close
@@ -36,7 +45,13 @@ public class ShipmentStreamService {
             return concat(list, emitter);
         });
 
-        // Send a welcome/heartbeat event immediately
+        // Send last known event for reliability
+        ShipmentUpdateEvent last = lastEventRegistry.get(shipmentId);
+        if (last != null) {
+            sendInternal(emitter, last);
+        }
+
+        // Send a stream-open signal
         sendInternal(emitter, new ShipmentUpdateEvent(
                 shipmentId,
                 null,
@@ -52,6 +67,8 @@ public class ShipmentStreamService {
         if (emitters == null || emitters.isEmpty()) {
             return;
         }
+
+        lastEventRegistry.put(shipmentId, event);
 
         List<SseEmitter> alive = emitters.stream()
                 .filter(emitter -> sendInternal(emitter, event))
@@ -84,5 +101,25 @@ public class ShipmentStreamService {
                     l.add(emitter);
                     return l;
                 }));
+    }
+
+    private void sendHeartbeats() {
+        emitterRegistry.forEach((shipmentId, emitters) -> {
+            ShipmentUpdateEvent heartbeat = new ShipmentUpdateEvent(
+                    shipmentId,
+                    null,
+                    "heartbeat",
+                    LocalDateTime.now()
+            );
+            List<SseEmitter> alive = emitters.stream()
+                    .filter(emitter -> sendInternal(emitter, heartbeat))
+                    .collect(Collectors.toList());
+            emitterRegistry.put(shipmentId, alive);
+        });
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        heartbeatScheduler.shutdownNow();
     }
 }
