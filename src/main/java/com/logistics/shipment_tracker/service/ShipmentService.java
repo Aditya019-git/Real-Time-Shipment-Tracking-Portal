@@ -17,6 +17,7 @@ import com.logistics.shipment_tracker.repository.LocationUpdateRepository;
 import com.logistics.shipment_tracker.repository.ShipmentRepository;
 import com.logistics.shipment_tracker.repository.UserRepository;
 import com.logistics.shipment_tracker.util.InputSanitizer;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -35,19 +36,22 @@ public class ShipmentService {
     private final ShipmentStreamService shipmentStreamService;
     private final AuditLogService auditLogService;
     private final InputSanitizer inputSanitizer;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ShipmentService(ShipmentRepository shipmentRepository,
                            UserRepository userRepository,
                            LocationUpdateRepository locationUpdateRepository,
                            ShipmentStreamService shipmentStreamService,
                            AuditLogService auditLogService,
-                           InputSanitizer inputSanitizer) {
+                           InputSanitizer inputSanitizer,
+                           SimpMessagingTemplate messagingTemplate) {
         this.shipmentRepository = shipmentRepository;
         this.userRepository = userRepository;
         this.locationUpdateRepository = locationUpdateRepository;
         this.shipmentStreamService = shipmentStreamService;
         this.auditLogService = auditLogService;
         this.inputSanitizer = inputSanitizer;
+        this.messagingTemplate = messagingTemplate;
     }
 
     @Transactional
@@ -184,13 +188,29 @@ public class ShipmentService {
     }
 
     private void emitUpdate(Shipment shipment, String message) {
+        Double lat = null;
+        Double lng = null;
+        if (shipment.getLocationUpdates() != null && !shipment.getLocationUpdates().isEmpty()) {
+            LocationUpdate last = shipment.getLocationUpdates()
+                    .stream()
+                    .max((a, b) -> a.getTimestamp().compareTo(b.getTimestamp()))
+                    .orElse(null);
+            if (last != null) {
+                lat = last.getLatitude();
+                lng = last.getLongitude();
+            }
+        }
+
         ShipmentUpdateEvent event = new ShipmentUpdateEvent(
                 shipment.getId(),
                 shipment.getStatus(),
                 message,
-                shipment.getUpdatedAt() != null ? shipment.getUpdatedAt() : shipment.getCreatedAt()
+                shipment.getUpdatedAt() != null ? shipment.getUpdatedAt() : shipment.getCreatedAt(),
+                lat,
+                lng
         );
         shipmentStreamService.publish(shipment.getId(), event);
+        messagingTemplate.convertAndSend("/topic/shipments/" + shipment.getId(), event);
     }
 
     private Pageable buildPageable(int page, int size, String sort) {
