@@ -1,11 +1,15 @@
 package com.logistics.shipment_tracker.dto.response;
 
 import com.logistics.shipment_tracker.entity.Shipment;
+import com.logistics.shipment_tracker.entity.LocationUpdate;
 import com.logistics.shipment_tracker.enums.ShipmentStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
 public class ShipmentResponse {
 
@@ -20,6 +24,7 @@ public class ShipmentResponse {
     private UUID awardedBidId;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private List<LocationUpdateResponse> locationUpdates;
 
     public ShipmentResponse() {
     }
@@ -34,7 +39,8 @@ public class ShipmentResponse {
                             ShipmentStatus status,
                             UUID awardedBidId,
                             LocalDateTime createdAt,
-                            LocalDateTime updatedAt) {
+                            LocalDateTime updatedAt,
+                            List<LocationUpdateResponse> locationUpdates) {
         this.id = id;
         this.shipperId = shipperId;
         this.shipperName = shipperName;
@@ -46,9 +52,17 @@ public class ShipmentResponse {
         this.awardedBidId = awardedBidId;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.locationUpdates = locationUpdates;
     }
 
     public static ShipmentResponse fromEntity(Shipment shipment) {
+        List<LocationUpdateResponse> updates = shipment.getLocationUpdates() == null
+                ? Collections.emptyList()
+                : shipment.getLocationUpdates().stream()
+                .sorted((a, b) -> a.getTimestamp().compareTo(b.getTimestamp()))
+                .map(LocationUpdateResponse::fromEntity)
+                .collect(Collectors.toList());
+
         return new ShipmentResponse(
                 shipment.getId(),
                 shipment.getShipper() != null ? shipment.getShipper().getId() : null,
@@ -60,7 +74,8 @@ public class ShipmentResponse {
                 shipment.getStatus(),
                 shipment.getAwardedBid() != null ? shipment.getAwardedBid().getId() : null,
                 shipment.getCreatedAt(),
-                shipment.getUpdatedAt()
+                shipment.getUpdatedAt(),
+                updates
         );
     }
 
@@ -150,5 +165,13 @@ public class ShipmentResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<LocationUpdateResponse> getLocationUpdates() {
+        return locationUpdates;
+    }
+
+    public void setLocationUpdates(List<LocationUpdateResponse> locationUpdates) {
+        this.locationUpdates = locationUpdates;
     }
 }
