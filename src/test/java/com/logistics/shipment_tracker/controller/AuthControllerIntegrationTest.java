@@ -3,6 +3,7 @@ package com.logistics.shipment_tracker.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.logistics.shipment_tracker.dto.request.LoginRequest;
 import com.logistics.shipment_tracker.dto.request.RegisterRequest;
+import com.logistics.shipment_tracker.enums.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,7 +29,7 @@ class AuthControllerIntegrationTest {
 
     @Test
     void registerAndLogin_success() throws Exception {
-        RegisterRequest register = new RegisterRequest("testuser", "test@example.com", "password123", "SHIPPER");
+        RegisterRequest register = new RegisterRequest("testuser", "test@example.com", "password123", Role.SHIPPER);
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
