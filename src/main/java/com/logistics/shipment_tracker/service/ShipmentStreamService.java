@@ -1,6 +1,7 @@
 package com.logistics.shipment_tracker.service;
 
 import com.logistics.shipment_tracker.dto.response.ShipmentUpdateEvent;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
